@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Learning Path Tracker</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        .completed { text-decoration: line-through; color: gray; }
+    </style>
+</head>
+<body>
+
+<h1>Learning Path Tracker</h1>
+
+<h2>Select Phase</h2>
+<select id="phaseSelect" onchange="loadTasks()"></select>
+
+<h3>Add Task</h3>
+<input type="text" id="taskInput" placeholder="Enter task title">
+<button onclick="addTask()">Add Task</button>
+
+<h3>Tasks</h3>
+<ul id="taskList"></ul>
+
+<script>
+    const API_URL = "/api";
+
+    async function loadPhases() {
+        const response = await fetch(`${API_URL}/phases`);
+        const phases = await response.json();
+
+        const select = document.getElementById("phaseSelect");
+        select.innerHTML = "";
+
+        phases.forEach(phase => {
+            const option = document.createElement("option");
+            option.value = phase.id;
+            option.textContent = phase.name;
+            select.appendChild(option);
+        });
+
+        loadTasks();
+    }
+
+    async function loadTasks() {
+        const phaseId = document.getElementById("phaseSelect").value;
+        const response = await fetch(`${API_URL}/tasks/${phaseId}`);
+        const tasks = await response.json();
+
+        const list = document.getElementById("taskList");
+        list.innerHTML = "";
+
+        tasks.forEach(task => {
+            const li = document.createElement("li");
+            li.textContent = task.title;
+
+            if (task.completed) {
+                li.classList.add("completed");
+            } else {
+                const btn = document.createElement("button");
+                btn.textContent = "Complete";
+                btn.onclick = () => completeTask(task.id);
+                li.appendChild(btn);
+            }
+
+            list.appendChild(li);
+        });
+    }
+
+    async function addTask() {
+        const input = document.getElementById("taskInput");
+        const phaseId = document.getElementById("phaseSelect").value;
+
+        await fetch(`${API_URL}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                phase_id: parseInt(phaseId),
+                title: input.value
+            })
+        });
+
+        input.value = "";
+        loadTasks();
+    }
+
+    async function completeTask(taskId) {
+        await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+            method: "PUT"
+        });
+        loadTasks();
+    }
+
+    loadPhases();
+</script>
+
+</body>
+</html>
